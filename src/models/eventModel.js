@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 
 // =======================
-// 📥 GET EVENTS
+// 📥 OBTENER EVENTOS
 // =======================
 const getAllEvents = async () => {
   const result = await pool.query(
@@ -11,7 +11,7 @@ const getAllEvents = async () => {
 };
 
 // =======================
-// 📸 CREATE EVENT
+// 📸 CREAR EVENTO
 // =======================
 const createEvent = async (name, location, city, date, image_url) => {
   const query = `
@@ -33,16 +33,16 @@ const createEvent = async (name, location, city, date, image_url) => {
 };
 
 // =======================
-// ✏️ UPDATE EVENT (FIXED COALESCE SAFE)
+// ✏️ UPDATE EVENT (🔥 FIX DEFINITIVO)
 // =======================
 const updateEvent = async (id, name, location, city, date, image_url) => {
   const query = `
     UPDATE events
     SET
-      name = $1,
-      location = $2,
-      city = $3,
-      date = $4,
+      name = COALESCE($1, name),
+      location = COALESCE($2, location),
+      city = COALESCE($3, city),
+      date = COALESCE($4, date),
       image_url = COALESCE($5, image_url)
     WHERE id = $6
     RETURNING *;
@@ -53,7 +53,7 @@ const updateEvent = async (id, name, location, city, date, image_url) => {
     location ?? null,
     city ?? null,
     date ?? null,
-    image_url,
+    image_url ?? null,
     id,
   ];
 
@@ -62,7 +62,7 @@ const updateEvent = async (id, name, location, city, date, image_url) => {
 };
 
 // =======================
-// 🏁 FINISH EVENT
+// 🏁 FINALIZAR EVENTO
 // =======================
 const finishEvent = async (id) => {
   const result = await pool.query(
@@ -79,7 +79,7 @@ const finishEvent = async (id) => {
 };
 
 // =======================
-// 🗑 DELETE EVENT
+// 🗑 ELIMINAR EVENTO
 // =======================
 const deleteEvent = async (id) => {
   const result = await pool.query(

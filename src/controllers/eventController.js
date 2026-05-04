@@ -42,25 +42,20 @@ const createEvent = async (req, res) => {
 };
 
 // =======================
-// ✏️ UPDATE EVENT (FIXED)
+// ✏️ UPDATE EVENT (🔥 FIX FINAL)
 // =======================
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, location, city, date } = req.body;
-
-    if (!id) {
-      return res.status(400).json({ error: "ID requerido" });
-    }
 
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const updated = await eventModel.updateEvent(
       id,
-      name,
-      location,
-      city,
-      date,
+      req.body.name ?? null,
+      req.body.location ?? null,
+      req.body.city ?? null,
+      req.body.date ?? null,
       image_url,
     );
 
