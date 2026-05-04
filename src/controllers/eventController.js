@@ -8,7 +8,7 @@ const getEvents = async (req, res) => {
     const events = await eventModel.getAllEvents();
     res.json(events);
   } catch (error) {
-    console.error(error);
+    console.error("GET EVENTS ERROR:", error);
     res.status(500).json({ error: "Error obteniendo eventos" });
   }
 };
@@ -24,6 +24,7 @@ const createEvent = async (req, res) => {
       return res.status(400).json({ error: "Faltan datos" });
     }
 
+    // 🔥 seguro (evita crash si no hay file)
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const newEvent = await eventModel.createEvent(
@@ -36,20 +37,29 @@ const createEvent = async (req, res) => {
 
     res.status(201).json(newEvent);
   } catch (error) {
-    console.error(error);
+    console.error("CREATE EVENT ERROR:", error);
     res.status(500).json({ error: "Error creando evento" });
   }
 };
 
 // =======================
-// ✏️ UPDATE EVENT (ADMIN)
+// ✏️ UPDATE EVENT (FIXED 🔥)
 // =======================
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, location, city, date } = req.body;
 
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+    if (!id) {
+      return res.status(400).json({ error: "ID requerido" });
+    }
+
+    // 🔥 imagen opcional (NO rompe si no viene file)
+    let image_url;
+
+    if (req.file) {
+      image_url = `/uploads/${req.file.filename}`;
+    }
 
     const updated = await eventModel.updateEvent(
       id,
@@ -60,15 +70,19 @@ const updateEvent = async (req, res) => {
       image_url,
     );
 
+    if (!updated) {
+      return res.status(404).json({ error: "Evento no encontrado" });
+    }
+
     res.json(updated);
   } catch (error) {
-    console.error(error);
+    console.error("UPDATE EVENT ERROR:", error);
     res.status(500).json({ error: "Error actualizando evento" });
   }
 };
 
 // =======================
-// 🏁 FINALIZAR EVENTO (🔥 NUEVO)
+// 🏁 FINALIZAR EVENTO
 // =======================
 const finishEvent = async (req, res) => {
   try {
@@ -85,13 +99,13 @@ const finishEvent = async (req, res) => {
       event: updated,
     });
   } catch (error) {
-    console.error(error);
+    console.error("FINISH EVENT ERROR:", error);
     res.status(500).json({ error: "Error finalizando evento" });
   }
 };
 
 // =======================
-// 🗑 DELETE EVENT (opcional)
+// 🗑 DELETE EVENT
 // =======================
 const deleteEvent = async (req, res) => {
   try {
@@ -104,7 +118,7 @@ const deleteEvent = async (req, res) => {
       event: deleted,
     });
   } catch (error) {
-    console.error(error);
+    console.error("DELETE EVENT ERROR:", error);
     res.status(500).json({ error: "Error eliminando evento" });
   }
 };
@@ -114,5 +128,5 @@ module.exports = {
   createEvent,
   updateEvent,
   deleteEvent,
-  finishEvent, // 👈 IMPORTANTE
+  finishEvent,
 };
