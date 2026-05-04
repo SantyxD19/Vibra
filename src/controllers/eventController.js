@@ -1,5 +1,4 @@
 const eventModel = require("../models/eventModel");
-const uploadImage = require("../utils/uploadImage");
 
 // =======================
 // 📥 GET EVENTS
@@ -15,18 +14,21 @@ const getEvents = async (req, res) => {
 };
 
 // =======================
-// 📸 CREATE EVENT (SUPABASE)
+// 📸 CREATE EVENT (DEBUG FULL)
 // =======================
 const createEvent = async (req, res) => {
   try {
+    console.log("🔥 CREATE EVENT HIT");
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
     const { name, location, city, date } = req.body;
 
     if (!name || !location || !city || !date) {
       return res.status(400).json({ error: "Faltan datos" });
     }
 
-    // 🔥 SUBIDA A SUPABASE STORAGE
-    const image_url = await uploadImage(req.file);
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const newEvent = await eventModel.createEvent(
       name,
@@ -44,72 +46,46 @@ const createEvent = async (req, res) => {
 };
 
 // =======================
-// ✏️ UPDATE EVENT (SUPABASE)
+// ✏️ UPDATE EVENT
 // =======================
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const image_url = await uploadImage(req.file);
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const updated = await eventModel.updateEvent(
       id,
-      req.body.name ?? null,
-      req.body.location ?? null,
-      req.body.city ?? null,
-      req.body.date ?? null,
+      req.body.name,
+      req.body.location,
+      req.body.city,
+      req.body.date,
       image_url,
     );
 
-    if (!updated) {
-      return res.status(404).json({ error: "Evento no encontrado" });
-    }
-
     res.json(updated);
   } catch (error) {
-    console.error("UPDATE EVENT ERROR:", error);
+    console.error("UPDATE ERROR:", error);
     res.status(500).json({ error: "Error actualizando evento" });
   }
 };
 
 // =======================
-// 🏁 FINISH EVENT
-// =======================
 const finishEvent = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const updated = await eventModel.finishEvent(id);
-
-    if (!updated) {
-      return res.status(404).json({ error: "Evento no encontrado" });
-    }
-
-    res.json({
-      message: "Evento finalizado",
-      event: updated,
-    });
+    const updated = await eventModel.finishEvent(req.params.id);
+    res.json(updated);
   } catch (error) {
-    console.error("FINISH EVENT ERROR:", error);
     res.status(500).json({ error: "Error finalizando evento" });
   }
 };
 
 // =======================
-// 🗑 DELETE EVENT
-// =======================
 const deleteEvent = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const deleted = await eventModel.deleteEvent(id);
-
-    res.json({
-      message: "Evento eliminado",
-      event: deleted,
-    });
+    const deleted = await eventModel.deleteEvent(req.params.id);
+    res.json(deleted);
   } catch (error) {
-    console.error("DELETE EVENT ERROR:", error);
     res.status(500).json({ error: "Error eliminando evento" });
   }
 };

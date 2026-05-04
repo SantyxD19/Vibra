@@ -2,43 +2,32 @@ const express = require("express");
 const router = express.Router();
 
 const eventController = require("../controllers/eventController");
-const verifyToken = require("../middlewares/authMiddleware");
-const isAdmin = require("../middlewares/isAdmin");
 const upload = require("../middlewares/upload");
 
 // =======================
 // 🌍 PUBLICO
 // =======================
 
-// 🔥 VER EVENTOS (solo activos)
 router.get("/", eventController.getEvents);
 
 // =======================
-// 🔥 ADMIN ONLY
+// ➕ CREAR EVENTO (TEMP SIN AUTH)
 // =======================
+router.post("/", upload.single("image"), eventController.createEvent);
 
-// ➕ CREAR EVENTO
-router.post(
-  "/",
-  verifyToken,
-  isAdmin,
-  upload.single("image"),
-  eventController.createEvent,
-);
+// =======================
+// ✏️ UPDATE EVENT (TEMP SIN AUTH)
+// =======================
+router.put("/:id", upload.single("image"), eventController.updateEvent);
 
-// ✏️ EDITAR EVENTO
-router.put(
-  "/:id",
-  verifyToken,
-  isAdmin,
-  upload.single("image"),
-  eventController.updateEvent,
-);
+// =======================
+// 🏁 FINISH
+// =======================
+router.put("/:id/finish", eventController.finishEvent);
 
-// 🏁 FINALIZAR EVENTO (🔥 NUEVO)
-router.put("/:id/finish", verifyToken, isAdmin, eventController.finishEvent);
-
-// 🗑 ELIMINAR EVENTO (opcional dejarlo)
-router.delete("/:id", verifyToken, isAdmin, eventController.deleteEvent);
+// =======================
+// 🗑 DELETE
+// =======================
+router.delete("/:id", eventController.deleteEvent);
 
 module.exports = router;
