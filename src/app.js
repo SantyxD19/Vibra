@@ -8,6 +8,11 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 // =======================
+// FILE UPLOAD (🔥 NUEVO)
+// =======================
+const fileUpload = require("express-fileupload");
+
+// =======================
 // ROUTES
 // =======================
 const userRoutes = require("./routes/userRoutes");
@@ -15,6 +20,7 @@ const comboRoutes = require("./routes/comboRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const comboMemberRoutes = require("./routes/comboMemberRoutes");
 const messagesRoutes = require("./routes/messagesRoutes");
+const uploadRoutes = require("./routes/uploadRoutes"); // 🔥 NUEVO
 
 const app = express();
 
@@ -38,14 +44,10 @@ io.on("connection", (socket) => {
   socket.on("joinCombo", (comboId) => {
     const room = `combo_${comboId}`;
     socket.join(room);
-    console.log(`🟡 ${socket.id} se unió a ${room}`);
   });
 
   socket.on("sendMessage", (data) => {
-    if (!data.combo_id) {
-      console.log("❌ combo_id inválido:", data);
-      return;
-    }
+    if (!data.combo_id) return;
 
     const room = `combo_${data.combo_id}`;
     io.to(room).emit("newMessage", data);
@@ -61,13 +63,16 @@ io.on("connection", (socket) => {
 // =======================
 app.use(
   cors({
-    origin: "*", // en producción luego lo limitas
+    origin: "*",
   }),
 );
 
 app.use(express.json());
 
-// 🔥 SERVIR ARCHIVOS (IMÁGENES)
+// 🔥 IMPORTANTE: para subir imágenes
+app.use(fileUpload());
+
+// 🔥 SERVIR ARCHIVOS (opcional, ya no lo usaremos para eventos pero lo puedes dejar)
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // =======================
@@ -78,6 +83,9 @@ app.use("/api/combos", comboRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/combo-members", comboMemberRoutes);
 app.use("/api/messages", messagesRoutes);
+
+// 🔥 NUEVA RUTA DE UPLOAD
+app.use("/api/upload", uploadRoutes);
 
 // =======================
 // HEALTH CHECK
