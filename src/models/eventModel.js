@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 
 // =======================
-// 📥 OBTENER EVENTOS (SOLO ACTIVOS)
+// 📥 GET EVENTS
 // =======================
 const getAllEvents = async () => {
   const result = await pool.query(
@@ -11,7 +11,7 @@ const getAllEvents = async () => {
 };
 
 // =======================
-// 📸 CREAR EVENTO
+// 📸 CREATE EVENT
 // =======================
 const createEvent = async (name, location, city, date, image_url) => {
   const query = `
@@ -20,14 +20,20 @@ const createEvent = async (name, location, city, date, image_url) => {
     RETURNING *;
   `;
 
-  const values = [name, location, city, date, image_url];
+  const values = [
+    name ?? null,
+    location ?? null,
+    city ?? null,
+    date ?? null,
+    image_url ?? null,
+  ];
 
   const result = await pool.query(query, values);
   return result.rows[0];
 };
 
 // =======================
-// ✏️ ACTUALIZAR EVENTO
+// ✏️ UPDATE EVENT (FIXED COALESCE SAFE)
 // =======================
 const updateEvent = async (id, name, location, city, date, image_url) => {
   const query = `
@@ -42,38 +48,49 @@ const updateEvent = async (id, name, location, city, date, image_url) => {
     RETURNING *;
   `;
 
-  const values = [name, location, city, date, image_url, id];
+  const values = [
+    name ?? null,
+    location ?? null,
+    city ?? null,
+    date ?? null,
+    image_url,
+    id,
+  ];
 
   const result = await pool.query(query, values);
   return result.rows[0];
 };
 
 // =======================
-// 🏁 FINALIZAR EVENTO (🔥 NUEVO)
+// 🏁 FINISH EVENT
 // =======================
 const finishEvent = async (id) => {
-  const query = `
+  const result = await pool.query(
+    `
     UPDATE events
     SET status = 'finished'
     WHERE id = $1
     RETURNING *;
-  `;
+    `,
+    [id],
+  );
 
-  const result = await pool.query(query, [id]);
   return result.rows[0];
 };
 
 // =======================
-// 🗑 ELIMINAR EVENTO (opcional dejarlo)
+// 🗑 DELETE EVENT
 // =======================
 const deleteEvent = async (id) => {
-  const query = `
+  const result = await pool.query(
+    `
     DELETE FROM events
     WHERE id = $1
     RETURNING *;
-  `;
+    `,
+    [id],
+  );
 
-  const result = await pool.query(query, [id]);
   return result.rows[0];
 };
 
@@ -82,5 +99,5 @@ module.exports = {
   createEvent,
   updateEvent,
   deleteEvent,
-  finishEvent, // 👈 IMPORTANTE
+  finishEvent,
 };

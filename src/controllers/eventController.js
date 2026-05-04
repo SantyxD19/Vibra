@@ -14,7 +14,7 @@ const getEvents = async (req, res) => {
 };
 
 // =======================
-// 📸 CREATE EVENT (ADMIN)
+// 📸 CREATE EVENT
 // =======================
 const createEvent = async (req, res) => {
   try {
@@ -24,7 +24,6 @@ const createEvent = async (req, res) => {
       return res.status(400).json({ error: "Faltan datos" });
     }
 
-    // 🔥 seguro (evita crash si no hay file)
     const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const newEvent = await eventModel.createEvent(
@@ -43,7 +42,7 @@ const createEvent = async (req, res) => {
 };
 
 // =======================
-// ✏️ UPDATE EVENT (FIXED 🔥)
+// ✏️ UPDATE EVENT (FIXED)
 // =======================
 const updateEvent = async (req, res) => {
   try {
@@ -54,12 +53,7 @@ const updateEvent = async (req, res) => {
       return res.status(400).json({ error: "ID requerido" });
     }
 
-    // 🔥 imagen opcional (NO rompe si no viene file)
-    let image_url;
-
-    if (req.file) {
-      image_url = `/uploads/${req.file.filename}`;
-    }
+    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
     const updated = await eventModel.updateEvent(
       id,
@@ -82,7 +76,7 @@ const updateEvent = async (req, res) => {
 };
 
 // =======================
-// 🏁 FINALIZAR EVENTO
+// 🏁 FINISH EVENT
 // =======================
 const finishEvent = async (req, res) => {
   try {
