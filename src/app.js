@@ -8,11 +8,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 // =======================
-// FILE UPLOAD (🔥 NUEVO)
-// =======================
-const fileUpload = require("express-fileupload");
-
-// =======================
 // ROUTES
 // =======================
 const userRoutes = require("./routes/userRoutes");
@@ -20,7 +15,7 @@ const comboRoutes = require("./routes/comboRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const comboMemberRoutes = require("./routes/comboMemberRoutes");
 const messagesRoutes = require("./routes/messagesRoutes");
-const uploadRoutes = require("./routes/uploadRoutes"); // 🔥 NUEVO
+const uploadRoutes = require("./routes/uploadRoutes");
 
 const app = express();
 
@@ -69,10 +64,7 @@ app.use(
 
 app.use(express.json());
 
-// 🔥 IMPORTANTE: para subir imágenes
-app.use(fileUpload());
-
-// 🔥 SERVIR ARCHIVOS (opcional, ya no lo usaremos para eventos pero lo puedes dejar)
+// 🔥 SOLO MULTER (NO fileUpload)
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // =======================
@@ -83,8 +75,6 @@ app.use("/api/combos", comboRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/combo-members", comboMemberRoutes);
 app.use("/api/messages", messagesRoutes);
-
-// 🔥 NUEVA RUTA DE UPLOAD
 app.use("/api/upload", uploadRoutes);
 
 // =======================
