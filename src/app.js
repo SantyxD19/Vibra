@@ -3,6 +3,7 @@ const cors = require("cors");
 const path = require("path");
 require("dotenv").config();
 require("./config/db");
+console.log("🔥 SUPABASE URL:", process.env.SUPABASE_URL);
 
 const http = require("http");
 const { Server } = require("socket.io");
