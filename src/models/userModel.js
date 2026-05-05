@@ -44,11 +44,9 @@ const getUserByEmail = async (email) => {
 };
 
 // =======================
-// 🔐 SAVE RESET TOKEN (🔥 CORREGIDO → usa ID)
+// 🔐 SAVE RESET TOKEN
 // =======================
 const saveResetToken = async (userId, token, expires) => {
-  console.log("💾 GUARDANDO TOKEN PARA USER:", userId);
-
   const result = await pool.query(
     `
     UPDATE users
@@ -60,10 +58,9 @@ const saveResetToken = async (userId, token, expires) => {
     [token, expires, userId],
   );
 
-  console.log("💾 RESULT DB:", result.rows[0]);
-
   return result.rows[0];
 };
+
 // =======================
 // 🔍 GET USER BY TOKEN
 // =======================
@@ -106,8 +103,8 @@ const updatePassword = async (userId, hashedPassword) => {
 const createUserProfile = async (userId) => {
   const result = await pool.query(
     `
-    INSERT INTO user_profile (user_id, bio, music_preferences, created_at)
-    VALUES ($1, '', '[]', NOW())
+    INSERT INTO user_profile (user_id, bio, music_preferences, profile_image, created_at)
+    VALUES ($1, '', '[]', NULL, NOW())
     RETURNING *;
     `,
     [userId],
@@ -128,18 +125,27 @@ const getUserProfile = async (userId) => {
   return result.rows[0];
 };
 
-// ACTUALIZAR PERFIL
-const updateUserProfile = async (userId, bio, music_preferences) => {
+// =======================
+// ✏️ UPDATE PERFIL (🔥 FIX FINAL)
+// =======================
+const updateUserProfile = async (
+  userId,
+  bio,
+  music_preferences,
+  profile_image = null,
+) => {
   const result = await pool.query(
     `
     UPDATE user_profile
-    SET bio = $1,
-        music_preferences = $2,
-        updated_at = NOW()
-    WHERE user_id = $3
+    SET 
+      bio = COALESCE($1, bio),
+      music_preferences = COALESCE($2, music_preferences),
+      profile_image = COALESCE($3, profile_image),
+      updated_at = NOW()
+    WHERE user_id = $4
     RETURNING *;
     `,
-    [bio, JSON.stringify(music_preferences), userId],
+    [bio, JSON.stringify(music_preferences), profile_image, userId],
   );
 
   return result.rows[0];
@@ -152,12 +158,10 @@ module.exports = {
   createUser,
   getUserByEmail,
 
-  // 🔐 RESET PASSWORD
   saveResetToken,
   getUserByResetToken,
   updatePassword,
 
-  // 👤 PERFIL
   createUserProfile,
   getUserProfile,
   updateUserProfile,

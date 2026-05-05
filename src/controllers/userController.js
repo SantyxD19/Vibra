@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 const { OAuth2Client } = require("google-auth-library");
 const crypto = require("crypto");
+const uploadImage = require("../utils/uploadImage");
 
 const {
   sendVerificationEmail,
@@ -13,7 +14,7 @@ const {
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // =======================
-// 🔐 VALIDADOR PASSWORD
+// 🔐 VALIDAR PASSWORD
 // =======================
 const isValidPassword = (password) => {
   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
@@ -21,7 +22,7 @@ const isValidPassword = (password) => {
 };
 
 // =======================
-// 🔥 REGISTER
+// 🔥 REGISTER (FIX SUPABASE)
 // =======================
 const register = async (req, res) => {
   try {
@@ -38,11 +39,15 @@ const register = async (req, res) => {
       });
     }
 
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    // 🔥 FIX: ahora usa Supabase Storage
+    let image = null;
+
+    if (req.file) {
+      image = await uploadImage(req.file);
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 🔥 VERIFICACIÓN REACTIVADA
     const verificationCode = Math.floor(
       100000 + Math.random() * 900000,
     ).toString();
@@ -56,7 +61,7 @@ const register = async (req, res) => {
       image,
       verificationCode,
       expiresAt,
-      false, // 🔥 IMPORTANTE: NO verificado
+      false,
     );
 
     await userModel.createUserProfile(newUser.id);
@@ -74,6 +79,7 @@ const register = async (req, res) => {
     res.status(500).json({ error: "Error creando usuario" });
   }
 };
+
 // =======================
 // 🔥 LOGIN
 // =======================
@@ -211,13 +217,8 @@ const forgotPassword = async (req, res) => {
 // =======================
 const resetPassword = async (req, res) => {
   try {
-    console.log("🔥 REQUEST RESET PASSWORD");
-
     const { token } = req.params;
     const { password } = req.body;
-
-    console.log("🔐 TOKEN RAW:", token);
-    console.log("📦 BODY:", req.body);
 
     if (!password) {
       return res.status(400).json({
@@ -233,30 +234,12 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    const cleanToken = token.trim();
-
-    const user = await userModel.getUserByResetToken(cleanToken);
-
-    console.log("👤 USER FOUND:", user);
+    const user = await userModel.getUserByResetToken(token.trim());
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        error: "Token inválido o ya fue usado",
-      });
-    }
-
-    if (!user.reset_expires) {
-      return res.status(400).json({
-        success: false,
-        error: "Token inválido",
-      });
-    }
-
-    if (new Date() > new Date(user.reset_expires)) {
-      return res.status(400).json({
-        success: false,
-        error: "Token expirado",
+        error: "Token inválido o expirado",
       });
     }
 
@@ -264,9 +247,7 @@ const resetPassword = async (req, res) => {
 
     await userModel.updatePassword(user.id, hashedPassword);
 
-    console.log("✅ PASSWORD UPDATED");
-
-    return res.status(200).json({
+    return res.json({
       success: true,
       message: "Contraseña actualizada 🔥",
     });
@@ -294,7 +275,8 @@ const getProfile = async (req, res) => {
         u.email,
         u.image,
         p.bio,
-        p.music_preferences
+        p.music_preferences,
+        p.profile_image
       FROM users u
       LEFT JOIN user_profile p ON p.user_id = u.id
       WHERE u.id = $1
@@ -308,8 +290,9 @@ const getProfile = async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    user.music_preferences = user.music_preferences || null;
     user.bio = user.bio || "";
+    user.music_preferences = user.music_preferences || null;
+    user.profile_image = user.profile_image || null;
 
     res.json(user);
   } catch (error) {
@@ -326,10 +309,17 @@ const updateProfile = async (req, res) => {
     const userId = req.user.id;
     const { bio, music_preferences } = req.body;
 
+    let profile_image = null;
+
+    if (req.file) {
+      profile_image = await uploadImage(req.file);
+    }
+
     const updated = await userModel.updateUserProfile(
       userId,
       bio,
       music_preferences,
+      profile_image,
     );
 
     res.json(updated);

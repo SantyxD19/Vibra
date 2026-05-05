@@ -31,7 +31,12 @@ router.post("/reset-password/:token", userController.resetPassword);
 // GET PROFILE
 router.get("/profile", verifyToken, userController.getProfile);
 
-// UPDATE PROFILE
-router.put("/profile", verifyToken, userController.updateProfile);
+// 🔥 FIX: ahora sí permite imagen
+router.put(
+  "/profile",
+  verifyToken,
+  upload.single("image"),
+  userController.updateProfile,
+);
 
 module.exports = router;

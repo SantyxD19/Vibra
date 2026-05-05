@@ -3,10 +3,10 @@ const supabase = require("../config/supabase");
 const uploadImage = async (file) => {
   if (!file) return null;
 
-  const fileName = `${Date.now()}-${file.originalname}`;
+  const fileName = `profiles/${Date.now()}-${file.originalname}`;
 
   const { error } = await supabase.storage
-    .from("eventos")
+    .from("profiles")
     .upload(fileName, file.buffer, {
       contentType: file.mimetype,
     });
@@ -16,7 +16,7 @@ const uploadImage = async (file) => {
     throw new Error("Error subiendo imagen");
   }
 
-  const { data } = supabase.storage.from("eventos").getPublicUrl(fileName);
+  const { data } = supabase.storage.from("profiles").getPublicUrl(fileName);
 
   return data.publicUrl;
 };
