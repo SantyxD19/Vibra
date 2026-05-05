@@ -1,4 +1,5 @@
 const eventModel = require("../models/eventModel");
+const uploadImage = require("../utils/uploadImage");
 
 // =======================
 // 📥 GET EVENTS
@@ -14,7 +15,7 @@ const getEvents = async (req, res) => {
 };
 
 // =======================
-// 📸 CREATE EVENT (DEBUG FULL)
+// 📸 CREATE EVENT (SUPABASE FIXED)
 // =======================
 const createEvent = async (req, res) => {
   try {
@@ -28,7 +29,12 @@ const createEvent = async (req, res) => {
       return res.status(400).json({ error: "Faltan datos" });
     }
 
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+    // 🔥 SUBIDA A SUPABASE STORAGE
+    let image_url = null;
+
+    if (req.file) {
+      image_url = await uploadImage(req.file);
+    }
 
     const newEvent = await eventModel.createEvent(
       name,
@@ -46,13 +52,17 @@ const createEvent = async (req, res) => {
 };
 
 // =======================
-// ✏️ UPDATE EVENT
+// ✏️ UPDATE EVENT (SUPABASE FIXED)
 // =======================
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+    let image_url = null;
+
+    if (req.file) {
+      image_url = await uploadImage(req.file);
+    }
 
     const updated = await eventModel.updateEvent(
       id,
