@@ -14,7 +14,7 @@ const {
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // =======================
-// 🔐 PASSWORD VALIDATION
+// 🔐 PASSWORD VALIDATOR
 // =======================
 const isValidPassword = (password) => {
   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
@@ -39,12 +39,7 @@ const register = async (req, res) => {
       });
     }
 
-    // 🔥 PROFILE IMAGE (SUPABASE)
-    let profile_image = null;
-
-    if (req.file) {
-      profile_image = await uploadImage(req.file);
-    }
+    const image = req.file ? await uploadImage(req.file) : null;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -58,9 +53,10 @@ const register = async (req, res) => {
       name,
       email,
       hashedPassword,
-      profile_image,
+      image,
       verificationCode,
       expiresAt,
+      false,
     );
 
     await userModel.createUserProfile(newUser.id);
@@ -74,7 +70,7 @@ const register = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error("REGISTER ERROR:", error);
+    console.error(error);
     res.status(500).json({ error: "Error creando usuario" });
   }
 };
@@ -125,7 +121,7 @@ const loginUser = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error("LOGIN ERROR:", error);
+    console.error(error);
     res.status(500).json({ error: "Error en login" });
   }
 };
@@ -146,22 +142,12 @@ const googleLogin = async (req, res) => {
 
     const email = payload.email;
     const name = payload.name;
-
-    // 🔥 FIX: profile image
-    let profile_image = payload.picture;
+    const image = payload.picture;
 
     let user = await userModel.getUserByEmail(email);
 
     if (!user) {
-      user = await userModel.createUser(
-        name,
-        email,
-        null,
-        profile_image,
-        null,
-        null,
-      );
-
+      user = await userModel.createUser(name, email, null, image, null, null);
       await userModel.createUserProfile(user.id);
     }
 
@@ -181,7 +167,7 @@ const googleLogin = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error("GOOGLE LOGIN ERROR:", error);
+    console.error(error);
     res.status(400).json({ error: "Error login Google" });
   }
 };
@@ -193,13 +179,7 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: "Email requerido" });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-
-    const user = await userModel.getUserByEmail(cleanEmail);
+    const user = await userModel.getUserByEmail(email);
 
     if (!user) {
       return res.json({
@@ -212,7 +192,7 @@ const forgotPassword = async (req, res) => {
 
     await userModel.saveResetToken(user.id, token, expires);
 
-    await sendResetPasswordEmail(cleanEmail, token);
+    await sendResetPasswordEmail(email, token);
 
     res.json({ message: "Revisa tu correo 📩" });
   } catch (error) {
@@ -229,16 +209,8 @@ const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
 
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        error: "Contraseña requerida",
-      });
-    }
-
     if (!isValidPassword(password)) {
       return res.status(400).json({
-        success: false,
         error: "Debe tener mínimo 8 caracteres, una mayúscula y un número",
       });
     }
@@ -247,7 +219,6 @@ const resetPassword = async (req, res) => {
 
     if (!user) {
       return res.status(400).json({
-        success: false,
         error: "Token inválido o expirado",
       });
     }
@@ -256,16 +227,13 @@ const resetPassword = async (req, res) => {
 
     await userModel.updatePassword(user.id, hashedPassword);
 
-    return res.json({
+    res.json({
       success: true,
       message: "Contraseña actualizada 🔥",
     });
   } catch (error) {
-    console.error("RESET ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      error: "Error reseteando contraseña",
-    });
+    console.error(error);
+    res.status(500).json({ error: "Error reseteando contraseña" });
   }
 };
 
@@ -279,25 +247,42 @@ const getProfile = async (req, res) => {
     const result = await pool.query(
       `
       SELECT 
-        id,
-        name,
-        email,
-        profile_image,
-        bio,
-        music_preferences
-      FROM users
-      WHERE id = $1
+        u.id,
+        u.name,
+        u.email,
+        p.bio,
+        p.music_preferences,
+        p.profile_image
+      FROM users u
+      LEFT JOIN user_profile p ON p.user_id = u.id
+      WHERE u.id = $1
       `,
       [userId],
     );
 
-    if (!result.rows.length) {
+    const user = result.rows[0];
+
+    if (!user) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    res.json(result.rows[0]);
+    let music = user.music_preferences;
+
+    if (typeof music === "string") {
+      try {
+        music = JSON.parse(music);
+      } catch {
+        music = [];
+      }
+    }
+
+    user.music_preferences = music || [];
+    user.bio = user.bio || "";
+    user.profile_image = user.profile_image || null;
+
+    res.json(user);
   } catch (error) {
-    console.error("PROFILE ERROR:", error);
+    console.error("GET PROFILE ERROR:", error);
     res.status(500).json({ error: "Error obteniendo perfil" });
   }
 };
@@ -319,7 +304,7 @@ const updateProfile = async (req, res) => {
     const updated = await userModel.updateUserProfile(
       userId,
       bio,
-      music_preferences,
+      JSON.stringify(music_preferences),
       profile_image,
     );
 
@@ -330,7 +315,6 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// =======================
 module.exports = {
   register,
   loginUser,
