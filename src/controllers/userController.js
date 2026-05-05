@@ -295,36 +295,52 @@ const updateProfile = async (req, res) => {
     const userId = req.user.id;
     const { bio, music_preferences } = req.body;
 
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
     let profile_image = null;
 
+    // ✅ upload seguro
     if (req.file) {
       profile_image = await uploadImage(req.file, "users");
     }
 
+    // ✅ parse seguro sin romper backend
     let musicParsed = [];
 
     if (music_preferences) {
-      try {
-        musicParsed =
-          typeof music_preferences === "string"
-            ? JSON.parse(music_preferences)
-            : music_preferences;
-      } catch {
-        musicParsed = [];
+      if (typeof music_preferences === "string") {
+        try {
+          musicParsed = JSON.parse(music_preferences);
+        } catch {
+          musicParsed = music_preferences.split(","); // fallback
+        }
+      } else {
+        musicParsed = music_preferences;
       }
     }
 
-    const updated = await userModel.updateUserProfile(
-      userId,
-      bio,
-      musicParsed,
-      profile_image,
+    const result = await pool.query(
+      `
+      UPDATE user_profile
+      SET 
+        bio = COALESCE($1, bio),
+        music_preferences = COALESCE($2, music_preferences),
+        profile_image = COALESCE($3, profile_image),
+        updated_at = NOW()
+      WHERE user_id = $4
+      RETURNING *;
+      `,
+      [bio || "", JSON.stringify(musicParsed || []), profile_image, userId],
     );
 
-    res.json(updated);
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error actualizando perfil" });
+    console.error("🔥 UPDATE PROFILE ERROR:", error);
+    res.status(500).json({
+      error: "Error actualizando perfil",
+      details: error.message,
+    });
   }
 };
 
