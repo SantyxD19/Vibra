@@ -1,13 +1,13 @@
 const pool = require("../config/db");
 
 // =======================
-// 👤 CREAR USUARIO
+// 👤 CREAR USUARIO (FIX)
 // =======================
 const createUser = async (
   name,
   email,
   password,
-  image = null,
+  profile_image = null,
   verificationCode,
   expiresAt,
 ) => {
@@ -17,7 +17,7 @@ const createUser = async (
       name,
       email,
       password,
-      image,
+      profile_image,
       role,
       is_verified,
       verification_code,
@@ -26,7 +26,7 @@ const createUser = async (
     VALUES ($1, $2, $3, $4, 'user', false, $5, $6)
     RETURNING *;
     `,
-    [name, email, password, image, verificationCode, expiresAt],
+    [name, email, password, profile_image, verificationCode, expiresAt],
   );
 
   return result.rows[0];
@@ -44,7 +44,7 @@ const getUserByEmail = async (email) => {
 };
 
 // =======================
-// 🔐 SAVE RESET TOKEN
+// 🔐 RESET TOKEN
 // =======================
 const saveResetToken = async (userId, token, expires) => {
   const result = await pool.query(
@@ -62,7 +62,7 @@ const saveResetToken = async (userId, token, expires) => {
 };
 
 // =======================
-// 🔍 GET USER BY TOKEN
+// 🔍 TOKEN USER
 // =======================
 const getUserByResetToken = async (token) => {
   const result = await pool.query(
@@ -77,7 +77,7 @@ const getUserByResetToken = async (token) => {
 };
 
 // =======================
-// 🔑 UPDATE PASSWORD
+// 🔑 PASSWORD
 // =======================
 const updatePassword = async (userId, hashedPassword) => {
   const result = await pool.query(
@@ -99,12 +99,12 @@ const updatePassword = async (userId, hashedPassword) => {
 // 👤 PERFIL
 // =======================
 
-// CREAR PERFIL
+// CREATE PROFILE
 const createUserProfile = async (userId) => {
   const result = await pool.query(
     `
-    INSERT INTO user_profile (user_id, bio, music_preferences, profile_image, created_at)
-    VALUES ($1, '', '[]', NULL, NOW())
+    INSERT INTO user_profile (user_id, bio, music_preferences, created_at)
+    VALUES ($1, '', '[]', NOW())
     RETURNING *;
     `,
     [userId],
@@ -113,7 +113,7 @@ const createUserProfile = async (userId) => {
   return result.rows[0];
 };
 
-// OBTENER PERFIL
+// GET PROFILE
 const getUserProfile = async (userId) => {
   const result = await pool.query(
     `
@@ -126,7 +126,7 @@ const getUserProfile = async (userId) => {
 };
 
 // =======================
-// ✏️ UPDATE PERFIL (🔥 FIX FINAL)
+// ✏️ UPDATE PROFILE (FIX FINAL)
 // =======================
 const updateUserProfile = async (
   userId,
@@ -151,8 +151,6 @@ const updateUserProfile = async (
   return result.rows[0];
 };
 
-// =======================
-// EXPORTS
 // =======================
 module.exports = {
   createUser,

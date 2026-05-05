@@ -14,7 +14,7 @@ const {
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // =======================
-// 🔐 VALIDAR PASSWORD
+// 🔐 PASSWORD VALIDATION
 // =======================
 const isValidPassword = (password) => {
   const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/;
@@ -22,7 +22,7 @@ const isValidPassword = (password) => {
 };
 
 // =======================
-// 🔥 REGISTER (FIX SUPABASE)
+// 🔥 REGISTER
 // =======================
 const register = async (req, res) => {
   try {
@@ -39,11 +39,11 @@ const register = async (req, res) => {
       });
     }
 
-    // 🔥 FIX: ahora usa Supabase Storage
-    let image = null;
+    // 🔥 PROFILE IMAGE (SUPABASE)
+    let profile_image = null;
 
     if (req.file) {
-      image = await uploadImage(req.file);
+      profile_image = await uploadImage(req.file);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -58,10 +58,9 @@ const register = async (req, res) => {
       name,
       email,
       hashedPassword,
-      image,
+      profile_image,
       verificationCode,
       expiresAt,
-      false,
     );
 
     await userModel.createUserProfile(newUser.id);
@@ -75,7 +74,7 @@ const register = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("REGISTER ERROR:", error);
     res.status(500).json({ error: "Error creando usuario" });
   }
 };
@@ -126,7 +125,7 @@ const loginUser = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("LOGIN ERROR:", error);
     res.status(500).json({ error: "Error en login" });
   }
 };
@@ -147,12 +146,22 @@ const googleLogin = async (req, res) => {
 
     const email = payload.email;
     const name = payload.name;
-    const image = payload.picture;
+
+    // 🔥 FIX: profile image
+    let profile_image = payload.picture;
 
     let user = await userModel.getUserByEmail(email);
 
     if (!user) {
-      user = await userModel.createUser(name, email, null, image, null, null);
+      user = await userModel.createUser(
+        name,
+        email,
+        null,
+        profile_image,
+        null,
+        null,
+      );
+
       await userModel.createUserProfile(user.id);
     }
 
@@ -172,7 +181,7 @@ const googleLogin = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("GOOGLE LOGIN ERROR:", error);
     res.status(400).json({ error: "Error login Google" });
   }
 };
@@ -252,7 +261,7 @@ const resetPassword = async (req, res) => {
       message: "Contraseña actualizada 🔥",
     });
   } catch (error) {
-    console.error(error);
+    console.error("RESET ERROR:", error);
     return res.status(500).json({
       success: false,
       error: "Error reseteando contraseña",
@@ -273,10 +282,9 @@ const getProfile = async (req, res) => {
         id,
         name,
         email,
-        image,
+        profile_image,
         bio,
-        music_preferences,
-        profile_image
+        music_preferences
       FROM users
       WHERE id = $1
       `,
@@ -287,16 +295,9 @@ const getProfile = async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    const user = result.rows[0];
-
-    res.json({
-      ...user,
-      bio: user.bio || "",
-      music_preferences: user.music_preferences || null,
-      profile_image: user.profile_image || null,
-    });
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error("🔥 PROFILE ERROR:", error);
+    console.error("PROFILE ERROR:", error);
     res.status(500).json({ error: "Error obteniendo perfil" });
   }
 };
@@ -324,7 +325,7 @@ const updateProfile = async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    console.error(error);
+    console.error("UPDATE PROFILE ERROR:", error);
     res.status(500).json({ error: "Error actualizando perfil" });
   }
 };
