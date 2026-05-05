@@ -104,7 +104,8 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ error: "Contraseña incorrecta" });
     }
 
-    const role = user.email === "admin@email.com" ? "admin" : "user";
+    // 🔥 FIX REAL (usa la DB)
+    const role = user.role;
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role },
@@ -121,7 +122,7 @@ const loginUser = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("LOGIN ERROR:", error);
     res.status(500).json({ error: "Error en login" });
   }
 };
