@@ -238,7 +238,7 @@ const resetPassword = async (req, res) => {
 };
 
 // =======================
-// 👤 PROFILE
+// 👤 PROFILE (FIX REAL)
 // =======================
 const getProfile = async (req, res) => {
   try {
@@ -288,7 +288,7 @@ const getProfile = async (req, res) => {
 };
 
 // =======================
-// ✏️ UPDATE PROFILE
+// ✏️ UPDATE PROFILE (FIX REAL)
 // =======================
 const updateProfile = async (req, res) => {
   try {
@@ -304,7 +304,7 @@ const updateProfile = async (req, res) => {
     const updated = await userModel.updateUserProfile(
       userId,
       bio,
-      JSON.stringify(music_preferences),
+      music_preferences,
       profile_image,
     );
 
