@@ -1,12 +1,12 @@
 const supabase = require("../config/supabase");
 
-const uploadImage = async (file) => {
+const uploadImage = async (file, folder = "general") => {
   if (!file) return null;
 
-  const fileName = `profiles/${Date.now()}-${file.originalname}`;
+  const fileName = `${folder}/${Date.now()}-${file.originalname}`;
 
   const { error } = await supabase.storage
-    .from("profiles")
+    .from("profiles") // puedes cambiar a "uploads" si luego separas buckets
     .upload(fileName, file.buffer, {
       contentType: file.mimetype,
     });

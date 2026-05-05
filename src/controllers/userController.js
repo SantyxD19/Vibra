@@ -39,7 +39,7 @@ const register = async (req, res) => {
       });
     }
 
-    const image = req.file ? await uploadImage(req.file) : null;
+    const image = req.file ? await uploadImage(req.file, "users") : null;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -104,7 +104,7 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ error: "Contraseña incorrecta" });
     }
 
-    const role = user.email === "santiagomacea19@gmail.com" ? "admin" : "user";
+    const role = user.email === "admin@email.com" ? "admin" : "user";
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role },
@@ -151,7 +151,7 @@ const googleLogin = async (req, res) => {
       await userModel.createUserProfile(user.id);
     }
 
-    const role = email === "santiagomacea19@gmail.com" ? "admin" : "user";
+    const role = email === "admin@email.com" ? "admin" : "user";
 
     const jwtToken = jwt.sign(
       { id: user.id, email: user.email, role },
@@ -238,7 +238,7 @@ const resetPassword = async (req, res) => {
 };
 
 // =======================
-// 👤 PROFILE (FIX REAL)
+// 👤 PROFILE
 // =======================
 const getProfile = async (req, res) => {
   try {
@@ -282,13 +282,13 @@ const getProfile = async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    console.error("GET PROFILE ERROR:", error);
+    console.error(error);
     res.status(500).json({ error: "Error obteniendo perfil" });
   }
 };
 
 // =======================
-// ✏️ UPDATE PROFILE (FIX REAL)
+// ✏️ UPDATE PROFILE
 // =======================
 const updateProfile = async (req, res) => {
   try {
@@ -298,19 +298,32 @@ const updateProfile = async (req, res) => {
     let profile_image = null;
 
     if (req.file) {
-      profile_image = await uploadImage(req.file);
+      profile_image = await uploadImage(req.file, "users");
+    }
+
+    let musicParsed = [];
+
+    if (music_preferences) {
+      try {
+        musicParsed =
+          typeof music_preferences === "string"
+            ? JSON.parse(music_preferences)
+            : music_preferences;
+      } catch {
+        musicParsed = [];
+      }
     }
 
     const updated = await userModel.updateUserProfile(
       userId,
       bio,
-      music_preferences,
+      musicParsed,
       profile_image,
     );
 
     res.json(updated);
   } catch (error) {
-    console.error("UPDATE PROFILE ERROR:", error);
+    console.error(error);
     res.status(500).json({ error: "Error actualizando perfil" });
   }
 };
