@@ -270,33 +270,33 @@ const getProfile = async (req, res) => {
     const result = await pool.query(
       `
       SELECT 
-        u.id,
-        u.name,
-        u.email,
-        u.image,
-        p.bio,
-        p.music_preferences,
-        p.profile_image
-      FROM users u
-      LEFT JOIN user_profile p ON p.user_id = u.id
-      WHERE u.id = $1
+        id,
+        name,
+        email,
+        image,
+        bio,
+        music_preferences,
+        profile_image
+      FROM users
+      WHERE id = $1
       `,
       [userId],
     );
 
-    const user = result.rows[0];
-
-    if (!user) {
+    if (!result.rows.length) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    user.bio = user.bio || "";
-    user.music_preferences = user.music_preferences || null;
-    user.profile_image = user.profile_image || null;
+    const user = result.rows[0];
 
-    res.json(user);
+    res.json({
+      ...user,
+      bio: user.bio || "",
+      music_preferences: user.music_preferences || null,
+      profile_image: user.profile_image || null,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("🔥 PROFILE ERROR:", error);
     res.status(500).json({ error: "Error obteniendo perfil" });
   }
 };
